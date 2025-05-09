@@ -1,0 +1,157 @@
+openapi: 3.0.3
+info:
+  title: Battery Management API
+  description: API for managing batteries in the VPP system.
+  version: 1.0.0
+paths:
+  /batteries:
+    post:
+      summary: Create Batteries
+      description: Create a list of batteries and return their IDs.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/BatteryDto'
+      responses:
+        '200':
+          description: List of created battery IDs.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  format: uuid
+    get:
+      summary: Get Batteries in Range
+      description: Fetch batteries within a postcode range with pagination.
+      parameters:
+        - name: minPostCode
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^(0[289][0-9]{2}|[1-9][0-9]{3})$'
+          description: Minimum postcode (Australian format).
+        - name: maxPostCode
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^(0[289][0-9]{2}|[1-9][0-9]{3})$'
+          description: Maximum postcode (Australian format).
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+          description: Page number for pagination.
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+          description: Page size for pagination.
+      responses:
+        '200':
+          description: Batteries in the specified range.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatteryResponseDto'
+  /batteries/search:
+    post:
+      summary: Search Batteries
+      description: Search batteries based on criteria with pagination.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatterySearchRequestDto'
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+          description: Page number for pagination.
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+          description: Page size for pagination.
+      responses:
+        '200':
+          description: Batteries matching the search criteria.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatteryResponseDto'
+components:
+  schemas:
+    BatteryDto:
+      type: object
+      required:
+        - name
+        - postcode
+        - capacity
+      properties:
+        name:
+          type: string
+          description: Name of the battery.
+        postcode:
+          type: string
+          description: Australian postcode of the battery.
+          pattern: '^(0[289][0-9]{2}|[1-9][0-9]{3})$'
+        capacity:
+          type: integer
+          description: Watt capacity of the battery.
+          minimum: 1
+    BatterySearchRequestDto:
+      type: object
+      properties:
+        minPostCode:
+          type: string
+          description: Minimum postcode (Australian format).
+          pattern: '^(0[289][0-9]{2}|[1-9][0-9]{3})$'
+        maxPostCode:
+          type: string
+          description: Maximum postcode (Australian format).
+          pattern: '^(0[289][0-9]{2}|[1-9][0-9]{3})$'
+        minCapacity:
+          type: integer
+          description: Minimum watt capacity.
+        maxCapacity:
+          type: integer
+          description: Maximum watt capacity.
+    BatteryResponseDto:
+      type: object
+      required:
+        - batteries
+      properties:
+        batteries:
+          type: array
+          items:
+            type: string
+          description: List of battery names.
+        totalBatteries:
+          type: integer
+          description: Total number of batteries. Return when page is 0.
+        totalCapacity:
+          type: integer
+          description: Total watt capacity of batteries. Return when page is 0.
+        averageCapacity:
+          type: number
+          format: double
+          description: Average watt capacity of batteries. Return when page is 0.
+

@@ -2,9 +2,13 @@ package io.powerledger.vpp.batterymanagement.service;
 
 import io.powerledger.vpp.batterymanagement.dto.BatteryDto;
 import io.powerledger.vpp.batterymanagement.dto.BatterySearchRequestDto;
+import io.powerledger.vpp.batterymanagement.dto.SummaryDto;
 import io.powerledger.vpp.batterymanagement.model.Battery;
+import io.powerledger.vpp.batterymanagement.model.BatterySummary;
 import io.powerledger.vpp.batterymanagement.repository.BatteryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -30,8 +34,8 @@ public class BatteryService {
         return savedBattery.getId();
     }
 
-    public List<BatteryDto> getBatteryByMinAndMaxPostCode(String minPostCode, String maxPostCode) {
-        List<Battery> batteries = batteryRepository.findByPostcodeRangeOrderByName(minPostCode, maxPostCode);
+    public List<BatteryDto> getBatteryByMinAndMaxPostCode(String minPostCode, String maxPostCode, Pageable pageable) {
+        Page<Battery> batteries = batteryRepository.findByPostcodeRangeOrderByName(minPostCode, maxPostCode, pageable);
         return batteries.stream().map(battery -> {
             BatteryDto dto = new BatteryDto();
             dto.setName(battery.getName());
@@ -41,12 +45,13 @@ public class BatteryService {
         }).collect(Collectors.toList());
     }
 
-    public List<BatteryDto> searchBatteries(BatterySearchRequestDto searchRequest) {
-        List<Battery> batteries = batteryRepository.findBySearchCriteria(
+    public List<BatteryDto> searchBatteries(BatterySearchRequestDto searchRequest, Pageable pageable) {
+        Page<Battery> batteries = batteryRepository.findBySearchCriteria(
                 searchRequest.getMinPostCode(),
                 searchRequest.getMaxPostCode(),
                 searchRequest.getMinCapacity(),
-                searchRequest.getMaxCapacity()
+                searchRequest.getMaxCapacity(),
+                pageable
         );
         return batteries.stream().map(battery -> {
             BatteryDto dto = new BatteryDto();
@@ -55,5 +60,32 @@ public class BatteryService {
             dto.setCapacity(battery.getWattCapacity());
             return dto;
         }).collect(Collectors.toList());
+    }
+
+    public SummaryDto getSummaryByPostcodeRange(String minPostCode, String maxPostCode) {
+        BatterySummary summary = batteryRepository.findSummaryByPostcodeRange(minPostCode, maxPostCode);
+
+        SummaryDto summaryDto = new SummaryDto();
+        summaryDto.setTotalBatteries(summary.getCount());
+        summaryDto.setTotalCapacity(summary.getTotalWattCapacity());
+        summaryDto.setAverageCapacity(summary.getAverageWattCapacity());
+
+        return summaryDto;
+    }
+
+    public SummaryDto getSummaryBySearchCriteria(BatterySearchRequestDto searchRequest) {
+        BatterySummary summary = batteryRepository.findSummaryBySearchCriteria(
+                searchRequest.getMinPostCode(),
+                searchRequest.getMaxPostCode(),
+                searchRequest.getMinCapacity(),
+                searchRequest.getMaxCapacity()
+        );
+
+        SummaryDto summaryDto = new SummaryDto();
+        summaryDto.setTotalBatteries(summary.getCount());
+        summaryDto.setTotalCapacity(summary.getTotalWattCapacity());
+        summaryDto.setAverageCapacity(summary.getAverageWattCapacity());
+
+        return summaryDto;
     }
 }

@@ -164,6 +164,61 @@ class BatteryApiTest {
     }
 
     @Test
+    void should_return_batteries_with_pagination() {
+        // given
+        Battery battery1 = new Battery();
+        battery1.setName("Battery A");
+        battery1.setPostcode("2000");
+        battery1.setWattCapacity(500);
+
+        Battery battery2 = new Battery();
+        battery2.setName("Battery B");
+        battery2.setPostcode("2500");
+        battery2.setWattCapacity(600);
+
+        Battery battery3 = new Battery();
+        battery3.setName("Battery C");
+        battery3.setPostcode("3500");
+        battery3.setWattCapacity(700);
+
+        batteryRepository.saveAll(List.of(battery1, battery2, battery3));
+
+        // when with page = 0 and size = 2
+        ResponseEntity<Map> response = restTemplate.exchange(
+                getBaseUrl() + "?minPostCode=2000&maxPostCode=3500&page=0&size=2",
+                HttpMethod.GET,
+                null,
+                Map.class
+        );
+
+        // then
+        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+        Map<String, Object> responseBody = response.getBody();
+        assertThat(responseBody).isNotNull();
+        assertThat((List<String>) responseBody.get("batteries")).containsExactly("Battery A", "Battery B");
+        assertThat(responseBody.get("totalCapacity")).isEqualTo(1800);
+        assertThat(responseBody.get("averageCapacity")).isEqualTo(600.0);
+        assertThat(responseBody.get("totalBatteries")).isEqualTo(3);
+
+        // when again with page = 1 and size = 2
+        ResponseEntity<Map> responseWithPage1 = restTemplate.exchange(
+                getBaseUrl() + "?minPostCode=2000&maxPostCode=3500&page=1&size=2",
+                HttpMethod.GET,
+                null,
+                Map.class
+        );
+
+        // then
+        assertThat(responseWithPage1.getStatusCode().is2xxSuccessful()).isTrue();
+        Map<String, Object> secondResponseBody = responseWithPage1.getBody();
+        assertThat(secondResponseBody).isNotNull();
+        assertThat((List<String>) secondResponseBody.get("batteries")).containsExactly("Battery C");
+        assertThat(secondResponseBody.get("totalCapacity")).isEqualTo(null);
+        assertThat(secondResponseBody.get("averageCapacity")).isEqualTo(null);
+        assertThat(secondResponseBody.get("totalBatteries")).isEqualTo(null);
+    }
+
+    @Test
     void should_return_bad_request_when_get_params_are_invalid() {
         // when
         ResponseEntity<Map> response = restTemplate.exchange(
@@ -221,7 +276,7 @@ class BatteryApiTest {
     }
 
     @Test
-    void should_return_all_batteries_when_min_max_capacity_is_null() {
+    void should_return_all_batteries_when_request_is_null_in_search() {
         // given
         Battery battery1 = new Battery();
         battery1.setName("Battery A");
@@ -244,10 +299,7 @@ class BatteryApiTest {
         ResponseEntity<Map> responseWithNullBody = restTemplate.exchange(
                 getBaseUrl() + "/search",
                 HttpMethod.POST,
-                new HttpEntity<>(Map.of(
-                        "minPostCode", "2000",
-                        "maxPostCode", "3500"
-                )),
+                new HttpEntity<>(Map.of()),
                 Map.class
         );
 

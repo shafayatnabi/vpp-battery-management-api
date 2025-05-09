@@ -6,6 +6,8 @@ import io.powerledger.vpp.batterymanagement.dto.BatterySearchRequestDto;
 import io.powerledger.vpp.batterymanagement.service.BatteryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -43,53 +45,75 @@ public class BatteryController {
 
     @GetMapping("/batteries")
     public ResponseEntity<BatteryResponseDto> getBatteriesInRange(
-            @RequestParam 
-            @NotNull(message = "minPostCode is required.") 
+            @RequestParam
+            @NotNull(message = "minPostCode is required.")
             @Pattern(regexp = AUSTRALIAN_POSTCODE_REGEX, message = "Invalid Australian postcode.")
             String minPostCode,
             @RequestParam 
             @NotNull(message = "maxPostCode is required.") 
             @Pattern(regexp = AUSTRALIAN_POSTCODE_REGEX, message = "Invalid Australian postcode.")
-            String maxPostCode) {
-        log.info("Fetching batteries in postcode range: {} - {}", minPostCode, maxPostCode);
-        var batteries = batteryService.getBatteryByMinAndMaxPostCode(minPostCode, maxPostCode);
+            String maxPostCode,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        log.info("Fetching batteries in postcode range: {} - {} with page {} and size {}", minPostCode, maxPostCode, page, size);
+        Pageable pageable = PageRequest.of(page, size);
+        var batteries = batteryService.getBatteryByMinAndMaxPostCode(minPostCode, maxPostCode, pageable);
+
+        var response = new BatteryResponseDto();
+        if (page == 0) {
+            var summary = batteryService.getSummaryByPostcodeRange(
+                    minPostCode,
+                    maxPostCode
+            );
+            response.setTotalCapacity(summary.getTotalCapacity());
+            response.setAverageCapacity(summary.getAverageCapacity());
+            response.setTotalBatteries(summary.getTotalBatteries());
+            log.info("Summary for postcode range {} - {}: Total Batteries: {}, Total Capacity: {}, Average Capacity: {}",
+                    minPostCode, maxPostCode, summary.getTotalBatteries(), summary.getTotalCapacity(), summary.getAverageCapacity());
+        }
+
+        log.info("Found {} batteries in range", batteries.size());
 
         var batteryNames = batteries.stream()
                 .map(BatteryDto::getName)
                 .toList();
-        var totalCapacity = batteries.stream()
-                .mapToInt(BatteryDto::getCapacity)
-                .sum();
-        var averageCapacity = batteries.isEmpty() ? 0 : (double) totalCapacity / batteries.size();
 
-        var response = new BatteryResponseDto();
         response.setBatteries(batteryNames);
-        response.setTotalCapacity(totalCapacity);
-        response.setAverageCapacity(averageCapacity);
-
-        log.info("Found {} batteries in range with total capacity {} and average capacity {}",
-                batteries.size(), totalCapacity, averageCapacity);
-
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/batteries/search")
-    public ResponseEntity<BatteryResponseDto> searchBatteries(@RequestBody @Valid BatterySearchRequestDto searchRequest) {
-        log.info("Searching batteries with criteria: {}", searchRequest);
-        var batteries = batteryService.searchBatteries(searchRequest);
+    public ResponseEntity<BatteryResponseDto> searchBatteries(
+            @RequestBody(required = false) @Valid BatterySearchRequestDto searchRequest,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        if (searchRequest == null) {
+            searchRequest = new BatterySearchRequestDto();
+        }
+        log.info("Searching batteries with criteria: {}, with page {} and size {}", searchRequest, page, size);
+        Pageable pageable = PageRequest.of(page, size);
+        var batteries = batteryService.searchBatteries(searchRequest, pageable);
+
+        var response = new BatteryResponseDto();
+
+        // returning summary only for the first page
+        if (page == 0) {
+            var summary = batteryService.getSummaryBySearchCriteria(
+                    searchRequest
+            );
+            response.setTotalCapacity(summary.getTotalCapacity());
+            response.setAverageCapacity(summary.getAverageCapacity());
+            response.setTotalBatteries(summary.getTotalBatteries());
+            log.info("Summary for search criteria {}: Total Batteries: {}, Total Capacity: {}, Average Capacity: {}",
+                    searchRequest, summary.getTotalBatteries(), summary.getTotalCapacity(), summary.getAverageCapacity());
+        }
 
         var batteryNames = batteries.stream()
                 .map(BatteryDto::getName)
                 .toList();
-        var totalCapacity = batteries.stream()
-                .mapToInt(BatteryDto::getCapacity)
-                .sum();
-        var averageCapacity = batteries.isEmpty() ? 0 : (double) totalCapacity / batteries.size();
-
-        var response = new BatteryResponseDto();
+        log.info("Found {} batteries matching criteria", batteryNames.size());
         response.setBatteries(batteryNames);
-        response.setTotalCapacity(totalCapacity);
-        response.setAverageCapacity(averageCapacity);
         return ResponseEntity.ok(response);
     }
 }

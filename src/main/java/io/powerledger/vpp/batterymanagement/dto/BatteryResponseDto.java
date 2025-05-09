@@ -4,8 +4,9 @@ import java.util.List;
 
 public class BatteryResponseDto {
     private List<String> batteries;
-    private int totalCapacity;
-    private double averageCapacity;
+    private Long totalCapacity;
+    private Double averageCapacity;
+    private Long totalBatteries;
 
     public List<String> getBatteries() {
         return batteries;
@@ -15,19 +16,27 @@ public class BatteryResponseDto {
         this.batteries = batteries;
     }
 
-    public int getTotalCapacity() {
+    public Long getTotalCapacity() {
         return totalCapacity;
     }
 
-    public void setTotalCapacity(int totalCapacity) {
+    public void setTotalCapacity(Long totalCapacity) {
         this.totalCapacity = totalCapacity;
     }
 
-    public double getAverageCapacity() {
+    public Double getAverageCapacity() {
         return averageCapacity;
     }
 
     public void setAverageCapacity(double averageCapacity) {
         this.averageCapacity = averageCapacity;
+    }
+
+    public Long getTotalBatteries() {
+        return totalBatteries;
+    }
+
+    public void setTotalBatteries(Long totalBatteries) {
+        this.totalBatteries = totalBatteries;
     }
 }

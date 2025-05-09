@@ -63,6 +63,28 @@ class BatteryControllerTest {
     }
 
     @Test
+    void should_create_batteries_async() {
+        // given
+        BatteryDto battery1 = new BatteryDto();
+        battery1.setName("Battery A");
+        battery1.setPostcode("2000");
+        battery1.setCapacity(500);
+
+        BatteryDto battery2 = new BatteryDto();
+        battery2.setName("Battery B");
+        battery2.setPostcode("2500");
+        battery2.setCapacity(600);
+
+        // when
+        ResponseEntity<String> response = batteryController.createBatteriesAsync(List.of(battery1, battery2));
+
+        // then
+        assertThat(response.getBody()).isEqualTo("Battery creation sent successfully.");
+        verify(batteryService, times(1)).sendBatteryCreationMessage(battery1);
+        verify(batteryService, times(1)).sendBatteryCreationMessage(battery2);
+    }
+
+    @Test
     void should_return_batteries_in_range_with_summary() {
         // given
         String minPostCode = "2000";

@@ -43,6 +43,13 @@ public class BatteryController {
         return ResponseEntity.ok(batteryIds);
     }
 
+    @PostMapping("/batteries/async")
+    public ResponseEntity<String> createBatteriesAsync(@RequestBody @Valid List<BatteryDto> batteries) {
+        batteries.forEach(batteryService::sendBatteryCreationMessage);
+        log.info("Battery creation messages sent successfully.");
+        return ResponseEntity.accepted().body("Battery creation sent successfully.");
+    }
+
     @GetMapping("/batteries")
     public ResponseEntity<BatteryResponseDto> getBatteriesInRange(
             @RequestParam
@@ -117,3 +124,4 @@ public class BatteryController {
         return ResponseEntity.ok(response);
     }
 }
+

@@ -16,6 +16,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.UUID;
@@ -32,12 +34,16 @@ class BatteryServiceTest {
     @Mock
     private BatteryRepository batteryRepository;
 
+    @Mock
+    private KafkaTemplate<String, BatteryDto> kafkaTemplate;
+
     @InjectMocks
     private BatteryService batteryService;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+        ReflectionTestUtils.setField(batteryService, "batteryCreateTopic", "battery-create-topic");
     }
 
     @Test
@@ -64,6 +70,31 @@ class BatteryServiceTest {
         assertThat(capturedBattery.getPostcode()).isEqualTo("2000");
         assertThat(capturedBattery.getWattCapacity()).isEqualTo(500);
         assertThat(batteryId).isEqualTo(savedBattery.getId());
+    }
+
+    @Test
+    void should_send_battery_data_to_kafka() {
+        // given
+        BatteryDto batteryDto = new BatteryDto();
+        batteryDto.setName("Battery A");
+        batteryDto.setPostcode("2000");
+        batteryDto.setCapacity(500);
+
+        Battery savedBattery = new Battery();
+        savedBattery.setId(UUID.randomUUID());
+        when(batteryRepository.save(any(Battery.class))).thenReturn(savedBattery);
+
+        // when
+        batteryService.sendBatteryCreationMessage(batteryDto);
+
+        // then
+        ArgumentCaptor<BatteryDto> batteryCaptor = ArgumentCaptor.forClass(BatteryDto.class);
+        verify(kafkaTemplate, times(1)).send(eq("battery-create-topic"), batteryCaptor.capture());
+
+        BatteryDto capturedBattery = batteryCaptor.getValue();
+        assertThat(capturedBattery.getName()).isEqualTo("Battery A");
+        assertThat(capturedBattery.getPostcode()).isEqualTo("2000");
+        assertThat(capturedBattery.getCapacity()).isEqualTo(500);
     }
 
     @Test

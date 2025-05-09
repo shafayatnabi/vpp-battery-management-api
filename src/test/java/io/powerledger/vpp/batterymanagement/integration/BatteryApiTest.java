@@ -12,12 +12,22 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.springframework.kafka.test.context.EmbeddedKafka;
+import org.springframework.kafka.test.utils.KafkaTestUtils;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.core.ConsumerFactory;
+import org.springframework.kafka.test.EmbeddedKafkaBroker;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
@@ -26,6 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Testcontainers
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
+@EmbeddedKafka(partitions = 1, topics = {"battery-create-topic"})
 class BatteryApiTest {
 
     @Container
@@ -36,7 +47,7 @@ class BatteryApiTest {
             .withPassword("testpass");
 
     @DynamicPropertySource
-    static void setProperties(org.springframework.test.context.DynamicPropertyRegistry registry) {
+    static void setProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", postgreSQLContainer::getJdbcUrl);
         registry.add("spring.datasource.username", postgreSQLContainer::getUsername);
         registry.add("spring.datasource.password", postgreSQLContainer::getPassword);
@@ -50,6 +61,9 @@ class BatteryApiTest {
 
     @Autowired
     private BatteryRepository batteryRepository;
+
+    @Autowired
+    private EmbeddedKafkaBroker embeddedKafkaBroker;
 
     private String getBaseUrl() {
         return "http://localhost:" + port + "/batteries";
@@ -311,5 +325,44 @@ class BatteryApiTest {
                 .containsExactly("Battery A", "Battery B", "Battery C");
         assertThat(responseBodyWithNullBody.get("totalCapacity")).isEqualTo(1800);
         assertThat(responseBodyWithNullBody.get("averageCapacity")).isEqualTo(600.0);
+    }
+
+    @Test
+    void should_send_battery_creation_messages_to_kafka() throws InterruptedException {
+        // given
+        var batteries = List.of(
+                Map.of("name", "Battery A", "postcode", "2000", "capacity", 500),
+                Map.of("name", "Battery B", "postcode", "2500", "capacity", 600)
+        );
+
+        // Configure Kafka consumer
+        Map<String, Object> consumerProps = KafkaTestUtils.consumerProps(
+                "test-group", "true", embeddedKafkaBroker);
+        ConsumerFactory<String, String> consumerFactory = new DefaultKafkaConsumerFactory<>(
+                consumerProps, new StringDeserializer(), new StringDeserializer());
+        var consumer = consumerFactory.createConsumer();
+        embeddedKafkaBroker.consumeFromAnEmbeddedTopic(consumer, "battery-create-topic");
+
+        // when
+        ResponseEntity<String> response = restTemplate.exchange(
+                getBaseUrl() + "/async",
+                HttpMethod.POST,
+                new HttpEntity<>(batteries),
+                String.class
+        );
+
+        // then
+        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+        assertThat(response.getBody()).isEqualTo("Battery creation sent successfully.");
+
+        // Verify Kafka messages
+        ConsumerRecords<String, String> records = KafkaTestUtils.getRecords(consumer, Duration.ofSeconds(5));
+        assertThat(records.count()).isEqualTo(2);
+
+        for (ConsumerRecord<String, String> record : records) {
+            assertThat(record.value()).containsAnyOf("Battery A", "Battery B");
+        }
+
+        consumer.close();
     }
 }

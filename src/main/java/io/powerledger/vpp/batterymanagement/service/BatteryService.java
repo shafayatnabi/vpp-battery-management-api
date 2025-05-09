@@ -6,9 +6,13 @@ import io.powerledger.vpp.batterymanagement.dto.SummaryDto;
 import io.powerledger.vpp.batterymanagement.model.Battery;
 import io.powerledger.vpp.batterymanagement.model.BatterySummary;
 import io.powerledger.vpp.batterymanagement.repository.BatteryRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -18,11 +22,18 @@ import java.util.stream.Collectors;
 @Service
 public class BatteryService {
 
+    private final Logger log = LoggerFactory.getLogger(this.getClass().getName());
+
     private final BatteryRepository batteryRepository;
+    private final KafkaTemplate<String, BatteryDto> kafkaTemplate;
+
+    @Value("${kafka.topic.battery-create}")
+    private String batteryCreateTopic;
 
     @Autowired
-    public BatteryService(BatteryRepository batteryRepository) {
+    public BatteryService(BatteryRepository batteryRepository, KafkaTemplate<String, BatteryDto> kafkaTemplate) {
         this.batteryRepository = batteryRepository;
+        this.kafkaTemplate = kafkaTemplate;
     }
 
     public UUID createBattery(BatteryDto batteryDto) {
@@ -87,5 +98,10 @@ public class BatteryService {
         summaryDto.setAverageCapacity(summary.getAverageWattCapacity());
 
         return summaryDto;
+    }
+
+    public void sendBatteryCreationMessage(BatteryDto batteryDto) {
+        kafkaTemplate.send(batteryCreateTopic, batteryDto);
+        log.info("Battery creation message sent to Kafka topic '{}': {}", batteryCreateTopic, batteryDto);
     }
 }

@@ -5,6 +5,7 @@ This project is a Spring Boot application for managing batteries in a Virtual Po
 ## Features
 
 - **Create Batteries**: Add new batteries to the system.
+- **Create Batteries Asynchronously**: Send battery creation requests to Kafka for asynchronous processing to handle large number of battery creation.
 - **Search Batteries**: Search batteries based on postcode and capacity criteria.
 - **Retrieve Batteries in Range**: Fetch batteries within a postcode range with pagination.
 - **Summary Statistics**: Get total, average, and count of battery capacities.
@@ -68,8 +69,45 @@ This project is a Spring Boot application for managing batteries in a Virtual Po
     "uuid2"
   ]
   ```
+### 2. Create Batteries Asynchronously
+**POST** `/batteries/async`
 
-### 2. Get Batteries in Range
+- **Description**: Sends battery creation messages to Kafka for asynchronous processing. The batteries will be saved to the database by a Kafka consumer.
+- **Request Body**:
+  ```json
+  [
+    {
+      "name": "Battery A",
+      "postcode": "2000",
+      "capacity": 500
+    },
+    {
+      "name": "Battery B",
+      "postcode": "2500",
+      "capacity": 600
+    }
+  ]
+  ```
+- **Response**:
+    - **Status Code**: `202 Accepted`
+    - **Body**:
+      ```text
+      Battery creation sent successfully.
+      ```
+- **Query Parameters**:
+    - `page` (optional): Page number (default: `0`).
+    - `size` (optional): Page size (default: `10`).
+
+- **Response**:
+  ```json
+  {
+    "batteries": ["Battery A", "Battery B"],
+    "totalBatteries": 2,
+    "totalCapacity": 1100,
+    "averageCapacity": 550.0
+  }
+  ```
+### 3. Get Batteries in Range
 **GET** `/batteries`
 
 - **Query Parameters**:
@@ -88,7 +126,7 @@ This project is a Spring Boot application for managing batteries in a Virtual Po
   }
   ```
 
-### 3. Search Batteries
+### 4. Search Batteries
 **POST** `/batteries/search`
 
 - **Request Body** (optional):
@@ -98,19 +136,6 @@ This project is a Spring Boot application for managing batteries in a Virtual Po
     "maxPostCode": "3000",
     "minCapacity": 400,
     "maxCapacity": 700
-  }
-  ```
-- **Query Parameters**:
-  - `page` (optional): Page number (default: `0`).
-  - `size` (optional): Page size (default: `10`).
-
-- **Response**:
-  ```json
-  {
-    "batteries": ["Battery A", "Battery B"],
-    "totalBatteries": 2,
-    "totalCapacity": 1100,
-    "averageCapacity": 550.0
   }
   ```
 
@@ -130,8 +155,12 @@ The OpenAPI specification for the APIs is available in the file:
 
 You can use tools like [Swagger Editor](https://editor.swagger.io/) to view and interact with the API documentation.
 
-## License
 
-This project is licensed under the MIT License.
 
-`
+## Limitation
+- Producer and Consumer of Kafka in same service, for scaling consumer or producer, if we decoupled the producer and consumer, we can scale them independently.
+- No Authentication or Authorization for API's.
+- No rate limiting.
+- No monitoring metrics.
+- No batch processing support in Kafka producer or consumer.
+- No error handling in Kafka producer or consumer.

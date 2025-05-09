@@ -97,6 +97,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BatteryResponseDto'
+  /batteries/async:
+    post:
+      summary: Create Batteries Asynchronously
+      description: Send battery creation messages to Kafka for asynchronous processing.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/BatteryDto'
+      responses:
+        '202':
+          description: Battery creation messages sent successfully.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Battery creation sent successfully.
 components:
   schemas:
     BatteryDto:
@@ -154,4 +174,3 @@ components:
           type: number
           format: double
           description: Average watt capacity of batteries. Return when page is 0.
-

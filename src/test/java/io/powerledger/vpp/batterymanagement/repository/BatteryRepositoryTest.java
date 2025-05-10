@@ -243,9 +243,9 @@ class BatteryRepositoryTest {
         );
 
         // then
-        assertThat(summary.getCount()).isEqualTo(3L);
-        assertThat(summary.getTotalWattCapacity()).isEqualTo(1800L);
-        assertThat(summary.getAverageWattCapacity()).isEqualTo(600.0);
+        assertThat(summary.count()).isEqualTo(3L);
+        assertThat(summary.totalWattCapacity()).isEqualTo(1800L);
+        assertThat(summary.averageWattCapacity()).isEqualTo(600.0);
     }
 
     @Test
@@ -274,9 +274,9 @@ class BatteryRepositoryTest {
         );
 
         // then
-        assertThat(summary.getCount()).isEqualTo(3L);
-        assertThat(summary.getTotalWattCapacity()).isEqualTo(1800L);
-        assertThat(summary.getAverageWattCapacity()).isEqualTo(600.0);
+        assertThat(summary.count()).isEqualTo(3L);
+        assertThat(summary.totalWattCapacity()).isEqualTo(1800L);
+        assertThat(summary.averageWattCapacity()).isEqualTo(600.0);
     }
 
     @Test
@@ -305,8 +305,8 @@ class BatteryRepositoryTest {
         );
 
         // then
-        assertThat(summary.getCount()).isEqualTo(3L);
-        assertThat(summary.getTotalWattCapacity()).isEqualTo(1800L);
-        assertThat(summary.getAverageWattCapacity()).isEqualTo(600.0);
+        assertThat(summary.count()).isEqualTo(3L);
+        assertThat(summary.totalWattCapacity()).isEqualTo(1800L);
+        assertThat(summary.averageWattCapacity()).isEqualTo(600.0);
     }
 }

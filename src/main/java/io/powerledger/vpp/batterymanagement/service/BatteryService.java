@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 @Service
 public class BatteryService {
 
-    private final Logger log = LoggerFactory.getLogger(this.getClass().getName());
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
 
     private final BatteryRepository batteryRepository;
     private final KafkaTemplate<String, BatteryDto> kafkaTemplate;
@@ -77,9 +77,9 @@ public class BatteryService {
         BatterySummary summary = batteryRepository.findSummaryByPostcodeRange(minPostCode, maxPostCode);
 
         SummaryDto summaryDto = new SummaryDto();
-        summaryDto.setTotalBatteries(summary.getCount());
-        summaryDto.setTotalCapacity(summary.getTotalWattCapacity());
-        summaryDto.setAverageCapacity(summary.getAverageWattCapacity());
+        summaryDto.setTotalBatteries(summary.count());
+        summaryDto.setTotalCapacity(summary.totalWattCapacity());
+        summaryDto.setAverageCapacity(summary.averageWattCapacity());
 
         return summaryDto;
     }
@@ -93,9 +93,9 @@ public class BatteryService {
         );
 
         SummaryDto summaryDto = new SummaryDto();
-        summaryDto.setTotalBatteries(summary.getCount());
-        summaryDto.setTotalCapacity(summary.getTotalWattCapacity());
-        summaryDto.setAverageCapacity(summary.getAverageWattCapacity());
+        summaryDto.setTotalBatteries(summary.count());
+        summaryDto.setTotalCapacity(summary.totalWattCapacity());
+        summaryDto.setAverageCapacity(summary.averageWattCapacity());
 
         return summaryDto;
     }

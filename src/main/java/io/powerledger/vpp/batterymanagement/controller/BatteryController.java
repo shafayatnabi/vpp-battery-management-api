@@ -67,6 +67,7 @@ public class BatteryController {
         var batteries = batteryService.getBatteryByMinAndMaxPostCode(minPostCode, maxPostCode, pageable);
 
         var response = new BatteryResponseDto();
+        // returning summary only for the first page
         if (page == 0) {
             var summary = batteryService.getSummaryByPostcodeRange(
                     minPostCode,
@@ -96,6 +97,7 @@ public class BatteryController {
             @RequestParam(defaultValue = "10") int size
     ) {
         if (searchRequest == null) {
+            log.info("No search criteria provided, using default empty search request.");
             searchRequest = new BatterySearchRequestDto();
         }
         log.info("Searching batteries with criteria: {}, with page {} and size {}", searchRequest, page, size);

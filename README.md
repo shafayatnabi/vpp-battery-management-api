@@ -148,6 +148,32 @@ This project is a Spring Boot application for managing batteries in a Virtual Po
 
 2. The project uses **TestContainers** for integration tests with PostgreSQL.
 
+## Local Run
+
+To run the application locally, follow these steps:
+
+1. **Start Dependencies**:
+   Use Docker Compose to start PostgreSQL and Kafka:
+   ```bash
+   docker-compose up -d
+   ```
+
+2. **Run the Application**:
+   Use Gradle to start the Spring Boot application:
+   ```bash
+   ./gradlew bootRun
+   ```
+
+3. **Verify the Setup**:
+    - PostgreSQL should be running on `localhost:5432`.
+    - Kafka should be running on `localhost:9092`.
+
+4. **Stop Dependencies**:
+   To stop the Docker containers, run:
+   ```bash
+   docker-compose down
+   ```
+
 ## OpenAPI Documentation
 
 The OpenAPI specification for the APIs is available in the file:
